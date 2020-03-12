@@ -1,0 +1,12 @@
+//ace-if
+AVInputFormat ff_asif_demuxer = {
+    .name           = "asif",
+    .long_name      = NULL_IF_CONFIG_SMALL("ASIF audio file (CS 3505 Spring 20202)"),
+    .priv_data_size = sizeof(WAVDemuxContext),
+    .read_probe     = asif_probe,
+    .read_header    = asif_read_header,
+    .read_packet    = asif_read_packet,
+    .read_seek      = asif_read_seek,
+    .flags          = AVFMT_GENERIC_INDEX,
+    .codec_tag      = (const AVCodecTag * const []) { ff_codec_wav_tags, 0 },
+};

@@ -61,6 +61,8 @@ typedef struct WAVDemuxContext {
     int rifx; // RIFX: integer byte order for parameters is big endian
 } WAVDemuxContext;
 
+static int did_print = 0;
+
 static void set_spdif(AVFormatContext *s, WAVDemuxContext *wav)
 {
     if (CONFIG_SPDIF_DEMUXER && s->streams[0]->codecpar->codec_tag == 1) {
@@ -342,6 +344,12 @@ static int wav_read_header(AVFormatContext *s)
 
     wav->smv_data_ofs = -1;
 
+    if(did_print == 0) 
+      {
+	did_print = 1;
+	av_log(NULL, AV_LOG_INFO, "\n*** CS 3505 Spring 2020:  Running code in wav_read_header in file wavdec.c ***\n*** CS 3505 Spring 2020:  Changed by Nick Hayes and Vijay Bajracharya ***\n");
+      }
+
     /* read chunk ID */
     tag = avio_rl32(pb);
     switch (tag) {
@@ -597,6 +605,8 @@ break_loop:
     ff_metadata_conv_ctx(s, NULL, ff_riff_info_conv);
 
     set_spdif(s, wav);
+
+    
 
     return 0;
 }

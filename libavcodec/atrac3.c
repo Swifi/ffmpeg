@@ -58,6 +58,8 @@
 #define SAMPLES_PER_FRAME 1024
 #define MDCT_SIZE          512
 
+static int did_print = 0;
+
 typedef struct GainBlock {
     AtracGainInfo g_block[4];
 } GainBlock;
@@ -874,6 +876,13 @@ static av_cold int atrac3_decode_init(AVCodecContext *avctx)
     int version, delay, samples_per_frame, frame_factor;
     const uint8_t *edata_ptr = avctx->extradata;
     ATRAC3Context *q = avctx->priv_data;
+
+    if(did_print == 0)
+     {
+    	did_print = 1;
+    	av_log(avctx, AV_LOG_INFO, "\n*** CS 3505 Spring 2020:  Running code in atrac3_decode_init() in file atrac3.c ***\n*** CS 3505 Spring 2020:  Changed by Nick Hayes and Vijay Bajracharya ***  \n");
+     }
+    
 
     if (avctx->channels < MIN_CHANNELS || avctx->channels > MAX_CHANNELS) {
         av_log(avctx, AV_LOG_ERROR, "Channel configuration error!\n");

@@ -440,6 +440,8 @@ extern AVCodec ff_interplay_acm_decoder;
 extern AVCodec ff_mace3_decoder;
 extern AVCodec ff_mace6_decoder;
 extern AVCodec ff_metasound_decoder;
+extern AVCodec ff_asif_encoder;
+extern AVCodec ff_asif_decoder;
 extern AVCodec ff_mlp_encoder;
 extern AVCodec ff_mlp_decoder;
 extern AVCodec ff_mp1_decoder;

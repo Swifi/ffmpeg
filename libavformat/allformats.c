@@ -28,6 +28,8 @@
 #include "version.h"
 
 /* (de)muxers */
+extern AVOutputFormat ff_asif_muxer;
+extern AVInputFormat  ff_asif_demuxer;
 extern AVOutputFormat ff_a64_muxer;
 extern AVInputFormat  ff_aa_demuxer;
 extern AVInputFormat  ff_aac_demuxer;

@@ -626,6 +626,7 @@ static av_cold int wavpack_decode_init(AVCodecContext *avctx)
 static av_cold int wavpack_decode_end(AVCodecContext *avctx)
 {
     WavpackContext *s = avctx->priv_data;
+
     int i;
 
     for (i = 0; i < s->fdec_num; i++)
@@ -639,6 +640,7 @@ static int wavpack_decode_block(AVCodecContext *avctx, int block_no,
                                 AVFrame *frame, const uint8_t *buf, int buf_size)
 {
     WavpackContext *wc = avctx->priv_data;
+
     ThreadFrame tframe = { .f = frame };
     WavpackFrameContext *s;
     GetByteContext gb;

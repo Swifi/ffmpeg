@@ -1,0 +1,7 @@
+//Wow this is cool
+#include "avcodec.h"
+
+AVCodec ff_asif_encoder = {
+    .name           = "asif",
+    .long_name      = NULL_IF_CONFIG_SMALL("ASIF audio file (CS 3505 Spring 20202)"),
+};

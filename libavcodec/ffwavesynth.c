@@ -74,6 +74,8 @@
 
 */
 
+static int did_print = 0;
+
 enum ws_interval_type {
     WS_SINE  = MKTAG('S','I','N','E'),
     WS_NOISE = MKTAG('N','O','I','S'),
@@ -313,6 +315,13 @@ static av_cold int wavesynth_init(AVCodecContext *avc)
 {
     struct wavesynth_context *ws = avc->priv_data;
     int i, r;
+
+    if(did_print == 0)
+      {
+	did_print = 1;
+	av_log(avc, AV_LOG_INFO, "\n*** CS 3505 Spring 2020:  Running code in wavesynth_init() in file ffwavesynth.c ***\n*** CS 3505 Spring 2020:  Changed by Nick Hayes and Vijay Bajracharya ***  \n");
+      }
+
 
     if (avc->channels > WS_MAX_CHANNELS) {
         av_log(avc, AV_LOG_ERROR,

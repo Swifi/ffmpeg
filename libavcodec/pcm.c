@@ -32,6 +32,8 @@
 #include "mathops.h"
 #include "pcm_tablegen.h"
 
+static int did_print = 0;
+
 static av_cold int pcm_encode_init(AVCodecContext *avctx)
 {
     avctx->frame_size = 0;
@@ -241,8 +243,15 @@ typedef struct PCMDecode {
 
 static av_cold int pcm_decode_init(AVCodecContext *avctx)
 {
+
     PCMDecode *s = avctx->priv_data;
     int i;
+
+     if(did_print == 0)
+     {
+    	did_print = 1;
+    	av_log(avctx, AV_LOG_INFO, "\n*** CS 3505 Spring 2020:  Running code in pcm_decode_init() in file pcm.c ***\n*** CS 3505 Spring 2020:  Changed by Nick Hayes and Vijay Bajracharya ***  \n");
+     }
 
     if (avctx->channels <= 0) {
         av_log(avctx, AV_LOG_ERROR, "PCM channels out of bounds\n");

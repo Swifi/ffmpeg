@@ -2841,6 +2841,13 @@ static const AVCodecDescriptor codec_descriptors[] = {
         .long_name = NULL_IF_CONFIG_SMALL("Voxware MetaSound"),
         .props     = AV_CODEC_PROP_INTRA_ONLY | AV_CODEC_PROP_LOSSY,
     },
+    { /* ASIF description */
+        .id        = AV_CODEC_ID_ASIF,
+        .type      = AVMEDIA_TYPE_AUDIO,
+        .name      = "asif",
+        .long_name = NULL_IF_CONFIG_SMALL("ASIF audio file (CS 3505 Spring 20202)"),
+        .props     = AV_CODEC_PROP_LOSSY,
+    },
     {
         .id        = AV_CODEC_ID_PAF_AUDIO,
         .type      = AVMEDIA_TYPE_AUDIO,
