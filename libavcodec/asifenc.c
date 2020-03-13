@@ -4,12 +4,13 @@
 static av_cold int asif_encode_init(AVCodecContext *avctx)
 {
   avctx->codec_id = AV_CODEC_ID_ASIF;
+  return 0;
 }
 
 static int asif_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 			     const AVFrame *frame, int *got_packet_ptr)
 {
-
+  return 0;
 }
 
 AVCodec ff_asif_encoder = {
