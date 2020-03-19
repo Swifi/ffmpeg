@@ -76,9 +76,7 @@ static void put_meta(AVFormatContext *s, const char *key, uint32_t id)
 
 static int asif_write_header(AVFormatContext *s)
 {
-    av_log(NULL, AV_LOG_INFO, "Write header reached");
-
-    ASIFOutputContext *asif = s->priv_data;
+  ASIFOutputContext *asif = s->priv_data;
     AVIOContext *pb = s->pb;
     AVCodecParameters *par;
     uint64_t sample_rate;
@@ -102,8 +100,6 @@ static int asif_write_header(AVFormatContext *s)
     par = s->streams[asif->audio_stream_idx]->codecpar;
     par->bits_per_coded_sample = 8; // Forced
 
-    printf("%d ", par->channels);
-
     /* ASIF header */
     ffio_wfourcc(pb, "ASIF");
 
@@ -123,6 +119,7 @@ static int asif_write_header(AVFormatContext *s)
     asif->frames = avio_tell(pb);
     avio_wb32(pb, 0);              /* Number of frames */
 
+    // Need to fix right now munually overridden
     if (!par->bits_per_coded_sample)
         par->bits_per_coded_sample = av_get_bits_per_sample(par->codec_id);
     if (!par->bits_per_coded_sample) {
@@ -137,6 +134,8 @@ static int asif_write_header(AVFormatContext *s)
     sample_rate = av_double2int(par->sample_rate);
     avio_wb16(pb, (sample_rate >> 52) + (16383 - 1023));
     avio_wb64(pb, UINT64_C(1) << 63 | sample_rate << 11);
+
+    av_log(NULL, AV_LOG_ERROR, "Just before sound chunk");
 
     /* Sound data chunk */
     ffio_wfourcc(pb, "SSND");
