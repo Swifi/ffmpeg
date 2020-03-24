@@ -22,7 +22,7 @@ static int asif_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
     unsigned char *dst;
     const uint8_t *samples_uint8_t;
 
-    sample_size = avctx->bits_per_coded_sample / 8; //av_get_bits_per_sample(avctx->codec->id) / 8;
+    sample_size = avctx->bits_per_coded_sample / 8;
     n           = frame->nb_samples * avctx->channels;
     samples     = (const short *)frame->data[0];
 
@@ -30,11 +30,22 @@ static int asif_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
         return ret;
     dst = avpkt->data;
 
-    samples_uint8_t = (const uint8_t *) samples;                              
-    for (; n > 0; n--) {                                                
-        register uint8_t v = (*samples_uint8_t++ >> 0) - 128;      
-	bytestream_put_byte(&dst, v);                             
+    samples_uint8_t = (const uint8_t *) samples;
+    for (; n > 0; n--) {
+        register uint8_t v = (*samples_uint8_t++ >> 0) - 128;
+    	bytestream_put_byte(&dst, v);
     }
+
+    /* n /= avctx->channels; */
+
+    /* for (c = 0; c < avctx->channels; c++) { */
+    /*     int i; */
+    /*     samples_uint8_t = (const uint8_t *) frame->extended_data[c]; */
+    /*     for (i = n; i > 0; i--) { */
+    /*         register uint8_t v = (*samples_uint8_t++ >> 0) - 128; */
+    /* 	    bytestream_put_byte(&dst, v); */
+    /*     } */
+    /* } */
 
     *got_packet_ptr = 1;
     return 0;

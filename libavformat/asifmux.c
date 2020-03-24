@@ -9,7 +9,7 @@
 #include "isom.h"
 #include "id3v2.h"
 
-typedef struct ASIFOutputContext {
+typedef struct ASIFOutputContext { 
     const AVClass *class;
     int64_t form;
     int64_t frames;
@@ -19,60 +19,6 @@ typedef struct ASIFOutputContext {
     int write_id3v2;
     int id3v2_version;
 } ASIFOutputContext;
-
-static int put_id3v2_tags(AVFormatContext *s, ASIFOutputContext *asif)
-{
-    int ret;
-    uint64_t pos, end, size;
-    ID3v2EncContext id3v2 = { 0 };
-    AVIOContext *pb = s->pb;
-    AVPacketList *pict_list = asif->pict_list;
-
-    if (!s->metadata && !asif->pict_list)
-        return 0;
-
-    avio_wl32(pb, MKTAG('I', 'D', '3', ' '));
-    avio_wb32(pb, 0);
-    pos = avio_tell(pb);
-
-    ff_id3v2_start(&id3v2, pb, asif->id3v2_version, ID3v2_DEFAULT_MAGIC);
-    ff_id3v2_write_metadata(s, &id3v2);
-    while (pict_list) {
-        if ((ret = ff_id3v2_write_apic(s, &id3v2, &pict_list->pkt)) < 0)
-            return ret;
-        pict_list = pict_list->next;
-    }
-    ff_id3v2_finish(&id3v2, pb, s->metadata_header_padding);
-
-    end = avio_tell(pb);
-    size = end - pos;
-
-    /* Update chunk size */
-    avio_seek(pb, pos - 4, SEEK_SET);
-    avio_wb32(pb, size);
-    avio_seek(pb, end, SEEK_SET);
-
-    if (size & 1)
-        avio_w8(pb, 0);
-
-    return 0;
-}
-
-static void put_meta(AVFormatContext *s, const char *key, uint32_t id)
-{
-    AVDictionaryEntry *tag;
-    AVIOContext *pb = s->pb;
-
-    if (tag = av_dict_get(s->metadata, key, NULL, 0)) {
-        int size = strlen(tag->value);
-
-        avio_wl32(pb, id);
-        avio_wb32(pb, FFALIGN(size, 2));
-        avio_write(pb, tag->value, size);
-        if (size & 1)
-            avio_w8(pb, 0);
-    }
-}
 
 static int asif_write_header(AVFormatContext *s)
 {
@@ -107,17 +53,16 @@ static int asif_write_header(AVFormatContext *s)
         ff_mov_write_chan(pb, par->channel_layout);
     }
 
-    put_meta(s, "title",     MKTAG('N', 'A', 'M', 'E'));
-    put_meta(s, "author",    MKTAG('A', 'U', 'T', 'H'));
-    put_meta(s, "copyright", MKTAG('(', 'c', ')', ' '));
-    put_meta(s, "comment",   MKTAG('A', 'N', 'N', 'O'));
-
     /* Common chunk */
-    ffio_wfourcc(pb, "COMM");
-    avio_wb16(pb, par->channels);  /* Number of channels */
+    sample_rate = av_double2int(par->sample_rate);            // CHANGE TO 32-bit Little Endian
+
+    avio_wb16(pb, (sample_rate >> 52) + (16383 - 1023));
+    avio_wb64(pb, UINT64_C(1) << 63 | sample_rate << 11);
+
+    avio_wl16(pb, par->channels);  /* Number of channels */
 
     asif->frames = avio_tell(pb);
-    avio_wb32(pb, 0);              /* Number of frames */
+    avio_wl32(pb, 0);              /* Number of frames */
 
     // Need to fix right now munually overridden
     if (!par->bits_per_coded_sample)
@@ -131,18 +76,7 @@ static int asif_write_header(AVFormatContext *s)
 
     avio_wb16(pb, par->bits_per_coded_sample); /* Sample size */
 
-    sample_rate = av_double2int(par->sample_rate);
-    avio_wb16(pb, (sample_rate >> 52) + (16383 - 1023));
-    avio_wb64(pb, UINT64_C(1) << 63 | sample_rate << 11);
-
-    av_log(NULL, AV_LOG_ERROR, "Just before sound chunk");
-
     /* Sound data chunk */
-    ffio_wfourcc(pb, "SSND");
-    asif->ssnd = avio_tell(pb);         /* Sound chunk size */
-    avio_wb32(pb, 0);                    /* Sound samples data size */
-    avio_wb32(pb, 0);                    /* Data offset */
-    avio_wb32(pb, 0);                    /* Block-size (block align) */
 
     avpriv_set_pts_info(s->streams[asif->audio_stream_idx], 64, 1,
                         s->streams[asif->audio_stream_idx]->codecpar->sample_rate);
@@ -194,3 +128,25 @@ AVOutputFormat ff_asif_muxer = {
     .codec_tag      = (const AVCodecTag* const []){ ff_codec_asif_tags, 0},
     .priv_class     = &asif_muxer_class,
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
