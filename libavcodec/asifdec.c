@@ -5,31 +5,12 @@
 #include "internal.h"
 #include "mathops.h"
 
-typedef struct ASIFDecode {
-    short   table[256];
-    AVFloatDSPContext *fdsp;
-    float   scale;
-} ASIFDecode;
-
 static av_cold int asif_decode_init(AVCodecContext *avctx)
 {
-
-    ASIFDecode *s = avctx->priv_data;
-    int i;
-
     if (avctx->channels <= 0) {
         av_log(avctx, AV_LOG_ERROR, "ASIF channels out of bounds\n");
         return AVERROR(EINVAL);
     }
-
-    return 0;
-}
-
-static av_cold int asif_decode_close(AVCodecContext *avctx)
-{
-    ASIFDecode *s = avctx->priv_data;
-
-    av_freep(&s->fdsp);
 
     return 0;
 }
@@ -39,7 +20,6 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
 {
     const uint8_t *src = avpkt->data;
     int buf_size       = avpkt->size;
-    ASIFDecode *s       = avctx->priv_data;
     AVFrame *frame     = data;
     int sample_size, c, n, ret, samples_per_block;
     uint8_t *samples;
@@ -98,11 +78,8 @@ AVCodec ff_asif_decoder = {
     .name           = "asif",
     .long_name      = NULL_IF_CONFIG_SMALL("ASIF audio file (CS 3505 Spring 20202)"),
     .type           = AVMEDIA_TYPE_AUDIO,
-    .id             = AV_CODEC_ID_ASIF,
-    .priv_data_size = sizeof(ASIFDecode),                                    
-    .init           = asif_decode_init,                                      
-    .close          = asif_decode_close,                                     
-    .decode         = asif_decode_frame,                                     
+    .id             = AV_CODEC_ID_ASIF,                                   
+    .init           = asif_decode_init,                                             .decode         = asif_decode_frame,                                     
     .capabilities   = AV_CODEC_CAP_DR1,                                     
 
 };

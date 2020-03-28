@@ -44,40 +44,40 @@ static int asif_write_header(AVFormatContext *s)
     }
 
     par = s->streams[asif->audio_stream_idx]->codecpar;
-    par->bits_per_coded_sample = 8; // Forced
+    par->bits_per_coded_sample = 8; // Forced ASK TA
 
     /* ASIF header */
     ffio_wfourcc(pb, "ASIF");
 
-    if (par->channels > 2 && par->channel_layout) {
-        ff_mov_write_chan(pb, par->channel_layout);
-    }
+    /* if (par->channels > 2 && par->channel_layout) { */
+    /*     ff_mov_write_chan(pb, par->channel_layout); */
+    /* } */
 
     /* Common chunk */
-    sample_rate = av_double2int(par->sample_rate);            // CHANGE TO 32-bit Little Endian
+    sample_rate = av_double2int(par->sample_rate); // ASK TA WHY SAMPLE_RATE 0
 
-    avio_wb16(pb, (sample_rate >> 52) + (16383 - 1023));
-    avio_wb64(pb, UINT64_C(1) << 63 | sample_rate << 11);
+    /* avio_wb16(pb, (sample_rate >> 52) + (16383 - 1023)); */
+    /* avio_wb64(pb, UINT64_C(1) << 63 | sample_rate << 11); */
+
+    avio_wl32(pb, par->sample_rate); /* Sample rate */
 
     avio_wl16(pb, par->channels);  /* Number of channels */
 
+    avio_wl32(pb, s->streams[0]->duration / par->channels); /* Number of samples per channel */
+
     asif->frames = avio_tell(pb);
-    avio_wl32(pb, 0);              /* Number of frames */
 
-    // Need to fix right now munually overridden
-    if (!par->bits_per_coded_sample)
-        par->bits_per_coded_sample = av_get_bits_per_sample(par->codec_id);
-    if (!par->bits_per_coded_sample) {
-        av_log(s, AV_LOG_ERROR, "could not compute bits per sample\n");
-        return AVERROR(EINVAL);
-    }
-    if (!par->block_align)
-        par->block_align = (par->bits_per_coded_sample * par->channels) >> 3;
 
-    avio_wb16(pb, par->bits_per_coded_sample); /* Sample size */
+    /* avio_wl32(pb, 0);              /\* Number of frames *\/ */
+
+    /* if (!par->block_align) */
+    /*     par->block_align = (par->bits_per_coded_sample * par->channels) >> 3; */
+
+    /* avio_wb16(pb, par->bits_per_coded_sample); /\* Sample size *\/ */
+
+
 
     /* Sound data chunk */
-
     avpriv_set_pts_info(s->streams[asif->audio_stream_idx], 64, 1,
                         s->streams[asif->audio_stream_idx]->codecpar->sample_rate);
 

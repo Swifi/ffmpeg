@@ -47,6 +47,8 @@ static int asif_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
         }
     }
 
+    avctx->sample_fmt = avctx->codec->sample_fmts[0];
+
     *got_packet_ptr = 1;
     return 0;
 }
@@ -59,6 +61,7 @@ AVCodec ff_asif_encoder = {
     .init           = asif_encode_init,
     .encode2        = asif_encode_frame,
     .capabilities   = AV_CODEC_CAP_VARIABLE_FRAME_SIZE,
+    .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_U8P, AV_SAMPLE_FMT_NONE},
 };
 
 
