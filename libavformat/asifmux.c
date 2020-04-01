@@ -6,18 +6,10 @@
 #include "internal.h"
 #include "asif.h"
 #include "avio_internal.h"
-#include "isom.h"
-#include "id3v2.h"
 
 typedef struct ASIFOutputContext { 
     const AVClass *class;
-    int64_t form;
-    int64_t frames;
-    int64_t ssnd;
     int audio_stream_idx;
-    AVPacketList *pict_list, *pict_list_end;
-    int write_id3v2;
-    int id3v2_version;
 } ASIFOutputContext;
 
 static int asif_write_header(AVFormatContext *s)
@@ -38,6 +30,7 @@ static int asif_write_header(AVFormatContext *s)
             return AVERROR(EINVAL);
         }
     }
+
     if (asif->audio_stream_idx < 0) {
         av_log(s, AV_LOG_ERROR, "No audio stream present.\n");
         return AVERROR(EINVAL);
@@ -58,8 +51,6 @@ static int asif_write_header(AVFormatContext *s)
 
     avio_wl32(pb, s->streams[0]->duration / par->channels); /* Number of samples per channel FIX */
 
-    asif->frames = avio_tell(pb);
-
     return 0;
 }
 
@@ -69,29 +60,12 @@ static int asif_write_packet(AVFormatContext *s, AVPacket *pkt)
     AVIOContext *pb = s->pb;
     if (pkt->stream_index == asif->audio_stream_idx)
         avio_write(pb, pkt->data, pkt->size);
-    /* else { */
-    /*     if (s->streams[pkt->stream_index]->codecpar->codec_type != AVMEDIA_TYPE_VIDEO) */
-    /*         return 0; */
-
-    /*     /\* warn only once for each stream *\/ */
-    /*     if (s->streams[pkt->stream_index]->nb_frames == 1) { */
-    /*         av_log(s, AV_LOG_WARNING, "Got more than one picture in stream %d," */
-    /*                " ignoring.\n", pkt->stream_index); */
-    /*     } */
-    /*     if (s->streams[pkt->stream_index]->nb_frames >= 1) */
-    /*         return 0; */
-
-    /*     return ff_packet_list_put(&asif->pict_list, &asif->pict_list_end, */
-    /*                               pkt, FF_PACKETLIST_FLAG_REF_PACKET); */
-    /* } */
 
     return 0;
 }
 
 static const AVClass asif_muxer_class = {
   .class_name     = "ASIF_muxer",
-  .item_name      = av_default_item_name,
-  .version        = LIBAVUTIL_VERSION_INT,
 };
 
 AVOutputFormat ff_asif_muxer = {
@@ -103,7 +77,6 @@ AVOutputFormat ff_asif_muxer = {
     .write_header   = asif_write_header,
     .write_packet   = asif_write_packet,
     .priv_class     = &asif_muxer_class,
-    .flags          = AVFMT_NOTIMESTAMPS,
 };
 
 

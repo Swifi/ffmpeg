@@ -7,12 +7,12 @@
 
 static av_cold int asif_decode_init(AVCodecContext *avctx)
 {
-    if (avctx->channels <= 0) {
-        av_log(avctx, AV_LOG_ERROR, "ASIF channels out of bounds\n");
-        return AVERROR(EINVAL);
-    }
+  if (avctx->channels <= 0) {
+    av_log(avctx, AV_LOG_ERROR, "ASIF channels out of bounds\n");
+    return AVERROR(EINVAL);
+  }
 
-    return 0;
+  return 0;
 }
 
 static int asif_decode_frame(AVCodecContext *avctx, void *data,
@@ -72,8 +72,6 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
     *got_frame_ptr = 1;
 
     return buf_size;
-
-  return 0;
 }
 
 AVCodec ff_asif_decoder = {
