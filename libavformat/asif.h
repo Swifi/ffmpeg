@@ -9,11 +9,6 @@
 #include "avformat.h"
 #include "internal.h"
 
-static const AVCodecTag ff_codec_asif_tags[] = {
-    { AV_CODEC_ID_ASIF,         MKTAG('A','S','I','F') },
-    { AV_CODEC_ID_NONE,         0 },
-};
-
 int ff_asif_read_packet(AVFormatContext *s, AVPacket *pkt);
 
 int ff_asif_read_seek(AVFormatContext *s,
