@@ -25,7 +25,7 @@ static int asif_write_header(AVFormatContext *s)
   ASIFOutputContext *asif = s->priv_data;
     AVIOContext *pb = s->pb;
     AVCodecParameters *par;
-    uint64_t sample_rate;
+    uint32_t sample_rate;
     int i;
 
     asif->audio_stream_idx = -1;
@@ -44,26 +44,21 @@ static int asif_write_header(AVFormatContext *s)
     }
 
     par = s->streams[asif->audio_stream_idx]->codecpar;
-    par->bits_per_coded_sample = 8; // Forced ASK TA
+    par->bits_per_coded_sample = 8; 
 
     /* ASIF header */
     ffio_wfourcc(pb, "ASIF");
 
     /* Common chunk */
-    sample_rate = av_double2int(par->sample_rate); // ASK TA WHY SAMPLE_RATE 0
+    sample_rate = (uint32_t) par->sample_rate;
 
-    avio_wl32(pb, par->sample_rate); /* Sample rate */
+    avio_wl32(pb, sample_rate); /* Sample rate */
 
     avio_wl16(pb, par->channels);  /* Number of channels */
 
-    avio_wl32(pb, s->streams[0]->duration / par->channels); /* Number of samples per channel */
+    avio_wl32(pb, s->streams[0]->duration / par->channels); /* Number of samples per channel FIX */
 
     asif->frames = avio_tell(pb);
-
-
-    /* Sound data chunk */
-    avpriv_set_pts_info(s->streams[asif->audio_stream_idx], 64, 1,
-                        s->streams[asif->audio_stream_idx]->codecpar->sample_rate);
 
     return 0;
 }
@@ -102,14 +97,11 @@ static const AVClass asif_muxer_class = {
 AVOutputFormat ff_asif_muxer = {
     .name           = "asif",
     .long_name      = NULL_IF_CONFIG_SMALL("ASIF audio file (CS 3505 Spring 20202)"),
-    .mime_type      = "audio/asif",
     .extensions     = "asif",
     .priv_data_size = sizeof(ASIFOutputContext),
     .audio_codec    = AV_CODEC_ID_ASIF,
-    .video_codec    = AV_CODEC_ID_NONE,
     .write_header   = asif_write_header,
     .write_packet   = asif_write_packet,
-    .codec_tag      = (const AVCodecTag* const []){ ff_codec_asif_tags, 0},
     .priv_class     = &asif_muxer_class,
     .flags          = AVFMT_NOTIMESTAMPS,
 };
