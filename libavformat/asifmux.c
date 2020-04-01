@@ -69,21 +69,21 @@ static int asif_write_packet(AVFormatContext *s, AVPacket *pkt)
     AVIOContext *pb = s->pb;
     if (pkt->stream_index == asif->audio_stream_idx)
         avio_write(pb, pkt->data, pkt->size);
-    else {
-        if (s->streams[pkt->stream_index]->codecpar->codec_type != AVMEDIA_TYPE_VIDEO)
-            return 0;
+    /* else { */
+    /*     if (s->streams[pkt->stream_index]->codecpar->codec_type != AVMEDIA_TYPE_VIDEO) */
+    /*         return 0; */
 
-        /* warn only once for each stream */
-        if (s->streams[pkt->stream_index]->nb_frames == 1) {
-            av_log(s, AV_LOG_WARNING, "Got more than one picture in stream %d,"
-                   " ignoring.\n", pkt->stream_index);
-        }
-        if (s->streams[pkt->stream_index]->nb_frames >= 1)
-            return 0;
+    /*     /\* warn only once for each stream *\/ */
+    /*     if (s->streams[pkt->stream_index]->nb_frames == 1) { */
+    /*         av_log(s, AV_LOG_WARNING, "Got more than one picture in stream %d," */
+    /*                " ignoring.\n", pkt->stream_index); */
+    /*     } */
+    /*     if (s->streams[pkt->stream_index]->nb_frames >= 1) */
+    /*         return 0; */
 
-        return ff_packet_list_put(&asif->pict_list, &asif->pict_list_end,
-                                  pkt, FF_PACKETLIST_FLAG_REF_PACKET);
-    }
+    /*     return ff_packet_list_put(&asif->pict_list, &asif->pict_list_end, */
+    /*                               pkt, FF_PACKETLIST_FLAG_REF_PACKET); */
+    /* } */
 
     return 0;
 }

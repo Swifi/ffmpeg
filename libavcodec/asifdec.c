@@ -72,6 +72,8 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
     *got_frame_ptr = 1;
 
     return buf_size;
+
+  return 0;
 }
 
 AVCodec ff_asif_decoder = {
