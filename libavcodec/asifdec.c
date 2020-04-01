@@ -79,7 +79,8 @@ AVCodec ff_asif_decoder = {
     .long_name      = NULL_IF_CONFIG_SMALL("ASIF audio file (CS 3505 Spring 20202)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_ASIF,                                   
-    .init           = asif_decode_init,                                             .decode         = asif_decode_frame,                                     
+    .init           = asif_decode_init,                                             
+    .decode         = asif_decode_frame,                                     
     .capabilities   = AV_CODEC_CAP_DR1,                                     
 
 };
