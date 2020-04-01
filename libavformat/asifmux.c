@@ -49,15 +49,8 @@ static int asif_write_header(AVFormatContext *s)
     /* ASIF header */
     ffio_wfourcc(pb, "ASIF");
 
-    /* if (par->channels > 2 && par->channel_layout) { */
-    /*     ff_mov_write_chan(pb, par->channel_layout); */
-    /* } */
-
     /* Common chunk */
     sample_rate = av_double2int(par->sample_rate); // ASK TA WHY SAMPLE_RATE 0
-
-    /* avio_wb16(pb, (sample_rate >> 52) + (16383 - 1023)); */
-    /* avio_wb64(pb, UINT64_C(1) << 63 | sample_rate << 11); */
 
     avio_wl32(pb, par->sample_rate); /* Sample rate */
 
@@ -66,15 +59,6 @@ static int asif_write_header(AVFormatContext *s)
     avio_wl32(pb, s->streams[0]->duration / par->channels); /* Number of samples per channel */
 
     asif->frames = avio_tell(pb);
-
-
-    /* avio_wl32(pb, 0);              /\* Number of frames *\/ */
-
-    /* if (!par->block_align) */
-    /*     par->block_align = (par->bits_per_coded_sample * par->channels) >> 3; */
-
-    /* avio_wb16(pb, par->bits_per_coded_sample); /\* Sample size *\/ */
-
 
 
     /* Sound data chunk */
@@ -127,6 +111,7 @@ AVOutputFormat ff_asif_muxer = {
     .write_packet   = asif_write_packet,
     .codec_tag      = (const AVCodecTag* const []){ ff_codec_asif_tags, 0},
     .priv_class     = &asif_muxer_class,
+    .flags          = AVFMT_NOTIMESTAMPS,
 };
 
 
