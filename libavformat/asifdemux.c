@@ -46,6 +46,8 @@ int ff_asif_read_seek(AVFormatContext *s,
 
   st = s->streams[0];
 
+  
+
   block_align = st->codecpar->block_align ? st->codecpar->block_align :
     8 * st->codecpar->channels >> 3;
   byte_rate = st->codecpar->bit_rate ? st->codecpar->bit_rate >> 3 :
@@ -73,18 +75,27 @@ int ff_asif_read_seek(AVFormatContext *s,
 static int asif_read_header(AVFormatContext *s)
 {
   AVIOContext *pb = s->pb;
+  AVCodecParameters *par;
   ASIFAudioDemuxerContext *s1 = s->priv_data;
   AVStream *st;
+  uint32_t tag;
+  uint32_t sample_rate;
+  
 
   st = avformat_new_stream(s, NULL);
   if (!st)
     return AVERROR(ENOMEM);
 
-  st->codecpar->codec_type  = AVMEDIA_TYPE_AUDIO;
-  st->codecpar->sample_rate = s1->sample_rate;
-  st->codecpar->channels    = s1->channels;
+  par = s->streams[0]->codecpar;
 
-  st->codecpar->bits_per_coded_sample = 8; // FIGURE OUT WHAT GOES IN HERE
+  tag = avio_rl32(pb);
+  if (tag != MKTAG('A','S','I','F'))
+    return AVERROR_INVALIDDATA;
+
+  sample_rate = avio_rl32(pb);
+  par->sample_rate = sample_rate;
+  par->channels = avio_rl16(pb);
+  par->bits_per_coded_sample = 8;
 
   av_assert0(st->codecpar->bits_per_coded_sample > 0);
 
