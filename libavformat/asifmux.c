@@ -58,6 +58,10 @@ static int asif_write_packet(AVFormatContext *s, AVPacket *pkt)
 {
     ASIFOutputContext *asif = s->priv_data;
     AVIOContext *pb = s->pb;
+
+
+    av_log(NULL, AV_LOG_INFO, "Operating in muxer write packet \n");
+
     if (pkt->stream_index == asif->audio_stream_idx)
         avio_write(pb, pkt->data, pkt->size);
 

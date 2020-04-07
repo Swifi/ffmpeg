@@ -10,17 +10,18 @@ typedef struct ASIFFrameData ASIFFrameData;
 struct ASIFFrameData
 {
 
-  uint8_t **sound_data;
-  ASIFFrameData *otherFrame;
+  AVFrame *refFrame;
+  ASIFFrameData *nextFrame;
 
 };
 
 typedef struct ASIFContext 
 {
 
-  int sample_rate;
-  int channels;
-  int recieved_all_frames;
+  int debug_frame_count;
+  int packet_created;
+  int total_samples;
+  int received_all_frames;
   ASIFFrameData *frame_data;
 
 } ASIFContext;
@@ -28,11 +29,14 @@ typedef struct ASIFContext
 static av_cold int asif_encode_init(AVCodecContext *avctx)
 {
   ASIFContext * c = avctx->priv_data;
-  c->recieved_all_frames = 0;
+  c->received_all_frames = 0;
   c->frame_data = NULL;
+  c->total_samples = 0;
+  c->debug_frame_count = 0;
+  c->packet_created = 0;
 
   // Initializing the context
-  avctx->frame_size = 1000;
+  avctx->frame_size = 10000;
   avctx->bits_per_coded_sample = 8; 
   avctx->block_align           = avctx->channels * avctx->bits_per_coded_sample / 8;
   avctx->bit_rate              = 40000;
@@ -42,7 +46,6 @@ static av_cold int asif_encode_init(AVCodecContext *avctx)
 
 static int asif_send_frame(AVCodecContext *avctx, const AVFrame *frame)
 {
-  int n, channel, sample_size, v, ret;
 
   ASIFContext * c = avctx->priv_data;
 
@@ -50,43 +53,46 @@ static int asif_send_frame(AVCodecContext *avctx, const AVFrame *frame)
 
   // If last frame 
   if (frame == NULL) {
-    av_log(NULL, AV_LOG_INFO, "Last frame received");
-    c->recieved_all_frames = 1;
+    av_log(NULL, AV_LOG_INFO, "Last frame received \n");
+    c->received_all_frames = 1;
 
     avctx->sample_fmt = avctx->codec->sample_fmts[0];
 
     return 0;
   }
 
+  c->total_samples += frame->nb_samples * avctx->channels;
+  c->debug_frame_count++;
+
+  // Make use of av_frame_ref() function or use memcpy
   // Allocate memory for arriving frames
   if (c->frame_data == NULL) {
+
     // Root frame
     c->frame_data = (ASIFFrameData*)malloc(sizeof(ASIFFrameData));
-    c->frame_data->sound_data = malloc(sizeof(uint8_t*) * avctx->channels);
     currentFrame = c->frame_data;
-    currentFrame->otherFrame = NULL;
+
+    currentFrame->refFrame = av_frame_alloc();
+    currentFrame->nextFrame = NULL;
+
   } else {
+
     // Find next postion to add frame
     currentFrame = c->frame_data;
     
-    while (currentFrame->otherFrame != NULL) {
-      currentFrame = currentFrame->otherFrame;
+    while (currentFrame->nextFrame != NULL) {
+      currentFrame = currentFrame->nextFrame;
     }
     
-    currentFrame->otherFrame = (ASIFFrameData*)malloc(sizeof(ASIFFrameData));
-    currentFrame->otherFrame->sound_data = malloc(sizeof(uint8_t) * avctx->channels);
-    currentFrame = currentFrame->otherFrame;
-    currentFrame->otherFrame = NULL;
+    currentFrame->nextFrame = (ASIFFrameData*)malloc(sizeof(ASIFFrameData));
+
+    currentFrame = currentFrame->nextFrame;
+    currentFrame->refFrame = av_frame_alloc();
+    currentFrame->nextFrame = NULL;
+
   }
-  
-  sample_size = avctx->bits_per_coded_sample / 8;
-  n           = frame->nb_samples * avctx->channels;
-  n          /= avctx->channels;
-  
-  // Accumulate samples for each channel
-  for (channel = 0; channel < avctx->channels; channel++) {
-    currentFrame->sound_data[channel] = (const uint8_t *) frame->extended_data[channel];
-  }
+
+  av_frame_ref(currentFrame->refFrame, frame);
   
   return 0;
 }
@@ -94,49 +100,50 @@ static int asif_send_frame(AVCodecContext *avctx, const AVFrame *frame)
 static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
 {
   ASIFContext *c = avctx->priv_data;
-  int ret;
+  int ret, n, channel;
   unsigned char *dst;
-  int channel;
   ASIFFrameData *currentFrame;
-  PutByteContext pb;
+  const uint8_t *samples_uint8_t;
+
+  av_log(NULL, AV_LOG_INFO, "Operating in encoder receive packet \n");
 
   // Dont start writing a packet until all frames have been recieved
-  if (c->recieved_all_frames == 0) {
+  if (c->received_all_frames == 0) {
      return AVERROR(EAGAIN);
   }
 
-  dst = avpkt->data;
-
-  if ((ret = ff_alloc_packet2(avctx, avpkt, 16, 16)) < 0)
+  if (c->packet_created == 1) {
+    return AVERROR_EOF;
+  }
+  
+  if ((ret = ff_alloc_packet2(avctx, avpkt, c->total_samples, c->total_samples)) < 0)
     return ret;
-
-  // Loop through 
-  // 2 channels 1 and 2
-  // loop through 1
-  // data[1] put in
-  // next node
-  // data[1] put in
-  // next node
-  // change channel
-  // repeat
-
-  currentFrame = c->frame_data;
+  dst = avpkt->data;
 
   // Loop through each channel
   for (channel = 0; channel < avctx->channels; channel++) {
+    
+    currentFrame = c->frame_data;
    
     // Loop through each node
     while (currentFrame != NULL) {
-      uint8_t * frame_pointer = currentFrame->sound_data[channel];
+      int i;
+      n = currentFrame->refFrame->nb_samples;
+      samples_uint8_t = (const uint8_t *) currentFrame->refFrame->extended_data[channel];
 
       // Loop through each sample
-      for (int i = 0; i < avctx->frame_size; i++) {
-  	bytestream2_put_byte(&pb, frame_pointer[i]);
+      for (i = n; i > 0; i--) {
+	register uint8_t v = *samples_uint8_t++;
+      	bytestream_put_byte(&dst, v);
       }
 
-      currentFrame = currentFrame->otherFrame;
+      currentFrame = currentFrame->nextFrame;
     }
   }
+
+  avctx->sample_fmt = avctx->codec->sample_fmts[0];
+
+  c->packet_created = 1;
 
   return 0;
 }
