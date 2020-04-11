@@ -104,7 +104,7 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
   unsigned char *dst;
   ASIFFrameData *currentFrame;
   const uint8_t *samples_uint8_t;
-  register int8_t old_value;
+  register int32_t old_value;
   uint8_t first_sample;
   /* register int8_t catch_up = 0; */
 
@@ -144,49 +144,27 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
 
       // Loop through each sample
       for (i = n; i > 0; i--) {
-	register int8_t new_value = *samples_uint8_t++;
+	register int32_t new_value = *samples_uint8_t++;
 	old_value = new_value - old_value;
 
+	// See if old_value is above or below the 8 bit max
+	if(old_value > 127) {
+	  //find what our sample is currently at
+	  new_value = new_value - (old_value - 127);
+	  //set the old value to be max
+	  old_value = 127;
+	  }
+	else if(old_value < -128) {
+	  //find what our sample is
+	  new_value = new_value + (old_value + 128);
+	  //set the old value to just be at max
+	  old_value = -128;
+	}
 
-	//TODO: Fix this, this is with Delta
-	/* register int8_t previous_catch_up; */
-	/* previous_catch_up = catch_up; */
+	// Write to byte_stream
+	bytestream_put_byte(&dst, (int8_t) old_value);
 
-	/* // Find if we can add v and catch_up for this next sample */
-
-	/* // DEBUGGING */
-	/* printf("%s", "\nNew value before difference: "); */
-	/* printf("%d", b); */
-	/* printf("%s", "\nOld Value before difference: "); */
-	/* printf("%d", old_value); */
-
-	/* // Find if we will need a catch_up for the next sample */
-	/* catch_up = asif_check_overflow_subtraction(old_value, new_value); */
-
-	/* // If adding catch_up and previous_catch up has no overflow, just add them, otherwise */
-	/* // just set catch_up to be the max amount it can be */
-	/* if(asif_check_overflow_addition(catch_up, previous_catch_up) == 0) { */
-	/*   catch_up = catch_up + previous_catch_up; */
-	/*   } */
-	/* else { */
-	/*   if(catch_up > 0) */
-	/*     catch_up = 127; */
-	/*   else */
-	/*     catch_up = -128; */
-	/* } */
-	
-	/* // Find the delta by taking the new value minus the old value (and the catch_up) */
-	/* // TODO: check overflow */
-	/* // TODO: set catch up accordingly after */
-	/* old_value = new_value - (old_value - catch_up); */
-
-	// DEBUGGING
-	/* printf("%s", "\nOld Value after difference: "); */
-	/* printf("%d", old_value); */
-
-	bytestream_put_byte(&dst, old_value);
-
-	// Change the value of old_value to new_value (instead of a delta, let it be the value)
+	// Set old_value to where we are at now
 	old_value = new_value;
       }
 	
@@ -202,47 +180,6 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
 
   return 0;
 }
-
-/* // This will return a new catch_up value */
-/* static int8_t asif_check_overflow_subtraction(int8_t & v, int8_t & b) */
-/* { */
-/*   int8_t catch_up = 0; */
-/*   // Find the difference between b (what we just got) and v (the previous value) and assign it to v */
-/*   // to be the delta */
-/*   if((b > 0) && (v < (-128 + b))) { */
-/*     // We went too far positive */
-/*     printf("%s", "\nMade it to the catch up if statement"); */
-/*   } */
-/*   else if ((b < 0) && (v > (127 + b))) { */
-/*     // We went too far negative */
-/*     printf("%s", "\nMade it to the catch up if statement"); */
-/*   } */
-/*   // No overflow, set catch_up to 0 */
-/*   else */
-/*     catch_up = 0; */
-
-/*   return catch_up; */
-/* } */
-
-/* static int8_t asif_check_overflow_addition(int8_t & v, int8_t & b) */
-/* { */
-/*   int8_t catch_up = 0; */
-/*   // Find the difference between b (what we just got) and v (the previous value) and assign it to v */
-/*   // to be the delta */
-/*   if((b > 0) && (v > (127 - b))) { */
-/*     // We went too far positive */
-/*     printf("%s", "\nMade it to the catch up if statement"); */
-/*   } */
-/*   else if ((b < 0) && (v < (-128 - b))) { */
-/*     // We went too far negative */
-/*     printf("%s", "\nMade it to the catch up if statement"); */
-/*   } */
-/*   // No overflow, set catch_up to 0 */
-/*   else */
-/*     catch_up = 0; */
-
-/*   return catch_up; */
-/* } */
 
 static av_cold int asif_encode_close(AVCodecContext *avctx)
 {
