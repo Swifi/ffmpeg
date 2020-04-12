@@ -99,7 +99,6 @@ static int asif_send_frame(AVCodecContext *avctx, const AVFrame *frame)
 
 static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
 {
-  PutByteContext pb;
   ASIFContext *c = avctx->priv_data;
   int ret, n, channel, first_sample_encoded;
   unsigned char *dst;
@@ -107,6 +106,7 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
   const uint8_t *samples_uint8_t;
   register int32_t old_value;
   register int32_t new_value;
+  register int32_t delta;
 
   /* register int8_t catch_up = 0; */
 
@@ -140,7 +140,6 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
     // Cap the old value to unsigned int of 8 bits
     if(old_value > 255) {
       //find what our sample is currently at
-      new_value = old_value - 255;
       //set the old value to be max
       old_value = 255;
     }
@@ -155,28 +154,27 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
       samples_uint8_t = (const uint8_t *) currentFrame->refFrame->extended_data[channel] + first_sample_encoded;
 
       // Loop through each sample
-      for (i = n; i > 0; i--) {
+      for (i = n - first_sample_encoded; i > 0; i--) {
 	new_value = *samples_uint8_t++;
-	old_value = new_value - old_value;
+	delta = new_value - old_value;
 
 	// See if old_value is above or below the 8 bit max
-	if(old_value > 127) {
+	if(delta > 127) {
 	  //find what our sample is currently at
-	  new_value = new_value - (old_value - 127);
+	  new_value = old_value + 127;
 	  //set the old value to be max
-	  old_value = 127;
+	  delta = 127;
 	  }
-	else if(old_value < -128) {
+	else if(delta < -128) {
 	  //find what our sample is
-	  new_value = new_value + (old_value + 128);
+	  new_value = old_value - 128;
 	  //set the old value to just be at max
-	  old_value = -128;
+	  delta = -128;
 	}
 
 	// Write to byte_stream
-	bytestream_put_byte(&dst, (int8_t) old_value);
+	bytestream_put_byte(&dst, (int8_t) delta);
 
-	// Set old_value to where we are at now
 	old_value = new_value;
       }
 	
