@@ -99,12 +99,15 @@ static int asif_send_frame(AVCodecContext *avctx, const AVFrame *frame)
 
 static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
 {
+  PutByteContext pb;
   ASIFContext *c = avctx->priv_data;
-  int ret, n, channel;
+  int ret, n, channel, first_sample_encoded;
   unsigned char *dst;
   ASIFFrameData *currentFrame;
   const uint8_t *samples_uint8_t;
-  register int32_t old_value;;
+  register int32_t old_value;
+  register int32_t new_value;
+
   /* register int8_t catch_up = 0; */
 
   av_log(NULL, AV_LOG_INFO, "Operating in encoder receive packet \n");
@@ -117,10 +120,13 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
   if (c->packet_created == 1) {
     return AVERROR_EOF;
   }
-  
-  if ((ret = ff_alloc_packet2(avctx, avpkt, c->total_samples, c->total_samples)) < 0)
+
+  if ((ret = ff_alloc_packet2(avctx, avpkt, c->total_samples + 32, c->total_samples + 32)) < 0)
     return ret;
   dst = avpkt->data;
+
+  // Put the total number of samples for channel in the bytestream
+  bytestream_put_le32(&dst, c->total_samples / avctx->channels);
 
   // Loop through each channel
   for (channel = 0; channel < avctx->channels; channel++) {
@@ -128,18 +134,29 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
     currentFrame = c->frame_data;
 
     // Set to 0 to get the first value to be equal to the actual value of the program
-    old_value = 0;
+    first_sample_encoded = 1;
+    old_value = *currentFrame->refFrame->extended_data[channel];
+
+    // Cap the old value to unsigned int of 8 bits
+    if(old_value > 255) {
+      //find what our sample is currently at
+      new_value = old_value - 255;
+      //set the old value to be max
+      old_value = 255;
+    }
+
+    bytestream_put_byte(&dst, (uint8_t) old_value);
 
    
     // Loop through each node
     while (currentFrame != NULL) {
       int i;
       n = currentFrame->refFrame->nb_samples;
-      samples_uint8_t = (const uint8_t *) currentFrame->refFrame->extended_data[channel];
+      samples_uint8_t = (const uint8_t *) currentFrame->refFrame->extended_data[channel] + first_sample_encoded;
 
       // Loop through each sample
       for (i = n; i > 0; i--) {
-	register int32_t new_value = *samples_uint8_t++;
+	new_value = *samples_uint8_t++;
 	old_value = new_value - old_value;
 
 	// See if old_value is above or below the 8 bit max
@@ -163,7 +180,7 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
 	old_value = new_value;
       }
 	
-
+      first_sample_encoded = 0;
       currentFrame = currentFrame->nextFrame;
     }
   }

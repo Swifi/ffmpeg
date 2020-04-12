@@ -40,7 +40,7 @@ static int asif_write_header(AVFormatContext *s)
     par->bits_per_coded_sample = 8; 
 
     /* ASIF header */
-    ffio_wfourcc(pb, "ASIF");
+    ffio_wfourcc(pb, "asif");
 
     /* Common chunk */
     sample_rate = (uint32_t) par->sample_rate;
@@ -49,7 +49,7 @@ static int asif_write_header(AVFormatContext *s)
 
     avio_wl16(pb, par->channels);  /* Number of channels */
 
-    avio_wl32(pb, s->streams[0]->duration / par->channels); /* Number of samples per channel FIX */
+    // Number of samples per channel is written on the encoder itself
 
     return 0;
 }
