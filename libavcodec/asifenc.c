@@ -104,8 +104,7 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
   unsigned char *dst;
   ASIFFrameData *currentFrame;
   const uint8_t *samples_uint8_t;
-  register int32_t old_value;
-  uint8_t first_sample;
+  register int32_t old_value;;
   /* register int8_t catch_up = 0; */
 
   av_log(NULL, AV_LOG_INFO, "Operating in encoder receive packet \n");
@@ -128,13 +127,9 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
     
     currentFrame = c->frame_data;
 
-    // Put in first byte for the channel
-    // This will be a value from 0 - 255, we don't need to clamp
-    first_sample = *currentFrame->refFrame->extended_data[channel];
-    // Since this is a signed int, we need to get a value from -128 to 127
-    old_value = first_sample - 128;
+    // Set to 0 to get the first value to be equal to the actual value of the program
+    old_value = 0;
 
-    bytestream_put_byte(&dst, first_sample);
    
     // Loop through each node
     while (currentFrame != NULL) {
