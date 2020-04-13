@@ -12,20 +12,31 @@ typedef struct ASIFAudioDemuxerContext {
   int total_samples;
 } ASIFAudioDemuxerContext;
 
-
-int ff_asif_read_packet(AVFormatContext *s, AVPacket *pkt)
+static int asif_read_packet(AVFormatContext *s, AVPacket *pkt)
 {
   ASIFAudioDemuxerContext *s1;
-  AVCodecParameters *par = s->streams[0]->codecpar;
-  int ret, size;
+  AVStream *st = s->streams[0];
+  int ret;
 
-  if (par->block_align <= 0)
+  av_log(NULL, AV_LOG_INFO, "Operating in Demuxer - Read Packet \n");
+
+  if (st->codecpar->block_align <= 0)
     return AVERROR(EINVAL);
   
+  // Populates the packet? Empty? or Filled with our packet?
   ret = av_get_packet(s->pb, pkt, s1->total_samples);
   pkt->stream_index = 0;
+  pkt->size = s1->total_samples;
 
-  return ret;
+  return 0;
+}
+
+static int asif_probe(const AVProbeData *p)
+{
+  if (p->buf[0] == 'a' && p->buf[1] == 's' && p->buf[2] == 'i' && p->buf[3] == 'f')
+    return AVPROBE_SCORE_MAX;
+  else
+    return 0;
 }
 
 static int asif_read_header(AVFormatContext *s)
@@ -36,6 +47,8 @@ static int asif_read_header(AVFormatContext *s)
   AVStream *st;
   uint32_t tag;
   uint32_t sample_rate;
+
+  av_log(NULL, AV_LOG_INFO, "Operating in Demuxer - Header \n");
   
 
   st = avformat_new_stream(s, NULL);
@@ -45,8 +58,11 @@ static int asif_read_header(AVFormatContext *s)
   par = s->streams[0]->codecpar;
 
   tag = avio_rl32(pb);
-  if (tag != MKTAG('A','S','I','F'))
+  if (tag != MKTAG('a','s','i','f'))
     return AVERROR_INVALIDDATA;
+
+  st->codecpar->codec_id = AV_CODEC_ID_ASIF;
+  st->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
 
   // Extract sample rate from file
   sample_rate = avio_rl32(pb);
@@ -61,6 +77,7 @@ static int asif_read_header(AVFormatContext *s)
   s1->total_samples = avio_rl32(pb) * par->channels;
  
   par->bits_per_coded_sample = 8;
+  par->bit_rate = 44000;
 
   return 0;
 }
@@ -69,9 +86,9 @@ AVInputFormat ff_asif_demuxer = {
   .name           = "asif",
   .long_name      = NULL_IF_CONFIG_SMALL("ASIF"),
   .priv_data_size = sizeof(ASIFAudioDemuxerContext),
+  .read_probe     = asif_probe,
   .read_header    = asif_read_header,
-  .read_packet    = ff_asif_read_packet,
-  .flags          = AVFMT_GENERIC_INDEX,
+  .read_packet    = asif_read_packet,
   .extensions     = "asif",
   .raw_codec_id   = AV_CODEC_ID_ASIF,
 };

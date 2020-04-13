@@ -7,6 +7,8 @@
 
 static av_cold int asif_decode_init(AVCodecContext *avctx)
 {
+  av_log(NULL, AV_LOG_INFO, "Operating in Decoder - Initializer \n");
+
   if (avctx->channels <= 0) {
     av_log(avctx, AV_LOG_ERROR, "ASIF channels out of bounds\n");
     return AVERROR(EINVAL);
@@ -24,6 +26,8 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
     int sample_size, c, n, ret, samples_per_block;
     uint8_t *samples;
     int32_t *dst_int32_t;
+    
+    av_log(NULL, AV_LOG_INFO, "Operating in Decoder - Frame Decoding \n");
 
     sample_size = avctx->bits_per_coded_sample / 8;
 
@@ -82,5 +86,4 @@ AVCodec ff_asif_decoder = {
     .id             = AV_CODEC_ID_ASIF,                                   
     .init           = asif_decode_init,                                                                  .decode         = asif_decode_frame,
     .capabilities   = AV_CODEC_CAP_DR1,                                     
-
 };
