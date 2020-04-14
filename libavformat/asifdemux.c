@@ -17,6 +17,7 @@ static int asif_read_packet(AVFormatContext *s, AVPacket *pkt)
   ASIFAudioDemuxerContext *s1;
   AVStream *st = s->streams[0];
   int ret;
+  int size;
 
   av_log(NULL, AV_LOG_INFO, "Operating in Demuxer - Read Packet \n");
 
@@ -24,9 +25,9 @@ static int asif_read_packet(AVFormatContext *s, AVPacket *pkt)
     return AVERROR(EINVAL);
   
   // Populates the packet? Empty? or Filled with our packet?
-  ret = av_get_packet(s->pb, pkt, s1->total_samples);
+  size = FFMAX(st->codecpar->sample_rate/25, 1);
+  ret = av_get_packet(s->pb, pkt, size);
   pkt->stream_index = 0;
-  pkt->size = s1->total_samples;
 
   return 0;
 }
@@ -77,7 +78,8 @@ static int asif_read_header(AVFormatContext *s)
   s1->total_samples = avio_rl32(pb) * par->channels;
  
   par->bits_per_coded_sample = 8;
-  par->bit_rate = 44000;
+
+  st->codecpar->block_align = st->codecpar->channels; 
 
   return 0;
 }

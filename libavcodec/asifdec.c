@@ -14,6 +14,8 @@ static av_cold int asif_decode_init(AVCodecContext *avctx)
     return AVERROR(EINVAL);
   }
 
+  avctx->sample_fmt = avctx->codec->sample_fmts[0];
+
   return 0;
 }
 
@@ -31,7 +33,6 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
 
     sample_size = avctx->bits_per_coded_sample / 8;
 
-    /* av_get_bits_per_sample returns 0 for AV_CODEC_ID_ASIF_DVD */
     samples_per_block = 1;
 
     if (sample_size == 0) {
@@ -65,7 +66,7 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
 
     /* get output buffer */
     frame->nb_samples = n * samples_per_block / avctx->channels;
-    if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
+    if ((ret = ff_get_buffer(avctx, frame, 0)) < 0) // Fills the frame
         return ret;
     samples = frame->data[0];
     
@@ -85,5 +86,6 @@ AVCodec ff_asif_decoder = {
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_ASIF,                                   
     .init           = asif_decode_init,                                                                  .decode         = asif_decode_frame,
-    .capabilities   = AV_CODEC_CAP_DR1,                                     
+    .capabilities   = AV_CODEC_CAP_DR1, 
+    .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_U8P, AV_SAMPLE_FMT_NONE},
 };
