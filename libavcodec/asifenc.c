@@ -121,7 +121,7 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
     return AVERROR_EOF;
   }
 
-  if ((ret = ff_alloc_packet2(avctx, avpkt, c->total_samples + 32, c->total_samples + 32)) < 0)
+  if ((ret = ff_alloc_packet2(avctx, avpkt, c->total_samples + 4, c->total_samples + 4)) < 0)
     return ret;
   dst = avpkt->data;
 
