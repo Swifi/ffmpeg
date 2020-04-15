@@ -14,7 +14,7 @@ typedef struct ASIFAudioDemuxerContext {
 
 static int asif_read_packet(AVFormatContext *s, AVPacket *pkt)
 {
-  ASIFAudioDemuxerContext *s1;
+  ASIFAudioDemuxerContext *s1 = s->priv_data;
   AVStream *st = s->streams[0];
   int ret;
   int size;
@@ -26,10 +26,24 @@ static int asif_read_packet(AVFormatContext *s, AVPacket *pkt)
   
   // Populates the packet? Empty? or Filled with our packet?
   size = FFMAX(st->codecpar->sample_rate/25, 1);
-  ret = av_get_packet(s->pb, pkt, size);
+
+  // ret = av_get_packet(s->pb, pkt, size);
+  // av_append_packet and seek if writing 100 bytes per then seek forward samples per channel - 100.
+  
+  for (int i = 0; i < s1->channels; i++){
+    ret = av_append_packet(s->pb, pkt, 100);
+   
+    if (ret < 0) {
+      av_packet_unref(pkt);
+      return ret;
+    }
+
+    avio_seek(s->pb, s1->total_samples/s1->channels - 100, SEEK_CUR);
+  }
+  
   pkt->stream_index = 0;
 
-  return 0;
+  return ret;
 }
 
 static int asif_probe(const AVProbeData *p)

@@ -64,22 +64,26 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
             buf_size -= buf_size % n;
     }
 
-    n = buf_size / sample_size;
+    // n = buf_size / sample_size;
+    n = 100;
 
     /* get output buffer */
-    frame->nb_samples = n * samples_per_block / avctx->channels;
+    frame->nb_samples = n * avctx->channels;
     if ((ret = ff_get_buffer(avctx, frame, 0)) < 0) // Fills the frame
         return ret;
-    samples = frame->data[0];
+    
+    //extended_data and loop over all channels
+
+    for(int c = 0; c < avctx->channels; c++) {
+      samples = frame->extended_data[c];
+
+      for (; n > 0; n--)
+      {
+	*samples++ = *src++;
+      }
+    }
     
     // Adding data from packet (src) to frame (samples)
-    delta = 0;
-
-    for (; n > 0; n--)
-      {
-      *samples++ = *src++;
-      printf("%d", *samples);
-      }
     av_log(avctx, AV_LOG_INFO, "Got out of for loop\n");
 
     *got_frame_ptr = 1;
