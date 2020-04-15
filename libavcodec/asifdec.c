@@ -25,9 +25,11 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
     const uint8_t *src = avpkt->data;
     int buf_size       = avpkt->size;
     AVFrame *frame     = data;
-    int sample_size, c, n, ret, samples_per_block;
+    int c, n, ret, samples_per_block;
+    volatile int sample_size;
     uint8_t *samples;
     int32_t *dst_int32_t;
+    int8_t delta;
     
     av_log(NULL, AV_LOG_INFO, "Operating in Decoder - Frame Decoding \n");
 
@@ -70,9 +72,15 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
         return ret;
     samples = frame->data[0];
     
+    // Adding data from packet (src) to frame (samples)
+    delta = 0;
+
     for (; n > 0; n--)
-      *samples++ = *src++ + 128;
-    
+      {
+      *samples++ = *src++;
+      printf("%d", *samples);
+      }
+    av_log(avctx, AV_LOG_INFO, "Got out of for loop\n");
 
     *got_frame_ptr = 1;
 
@@ -85,7 +93,8 @@ AVCodec ff_asif_decoder = {
     .long_name      = NULL_IF_CONFIG_SMALL("ASIF audio file (CS 3505 Spring 20202)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_ASIF,                                   
-    .init           = asif_decode_init,                                                                  .decode         = asif_decode_frame,
+    .init           = asif_decode_init,                                                                  
+    .decode         = asif_decode_frame,
     .capabilities   = AV_CODEC_CAP_DR1, 
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_U8P, AV_SAMPLE_FMT_NONE},
 };
