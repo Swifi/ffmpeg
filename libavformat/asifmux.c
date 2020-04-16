@@ -1,17 +1,24 @@
 #include <stdint.h>
-
 #include "libavutil/intfloat.h"
 #include "libavutil/opt.h"
 #include "avformat.h"
 #include "internal.h"
 #include "asif.h"
 #include "avio_internal.h"
+/*
+ * The solution for our muxer by Vijay Bajracharya
+ * and Nick Hayes. 4/16/2020
+ */
 
 typedef struct ASIFOutputContext { 
     const AVClass *class;
     int audio_stream_idx;
 } ASIFOutputContext;
 
+/*
+ * This will write the first 4 letters to show asif, as well as write the sample_rate and channels.
+ * The samples per channel is written in the encoder (as we don't know this until after we receive all frames)
+ */
 static int asif_write_header(AVFormatContext *s)
 {
   ASIFOutputContext *asif = s->priv_data;
@@ -54,13 +61,13 @@ static int asif_write_header(AVFormatContext *s)
     return 0;
 }
 
+/*
+ * This will write the packet we receive to the file.
+ */
 static int asif_write_packet(AVFormatContext *s, AVPacket *pkt)
 {
     ASIFOutputContext *asif = s->priv_data;
     AVIOContext *pb = s->pb;
-
-
-    av_log(NULL, AV_LOG_INFO, "Operating in muxer write packet \n");
 
     if (pkt->stream_index == asif->audio_stream_idx)
         avio_write(pb, pkt->data, pkt->size);

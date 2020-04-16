@@ -6,49 +6,42 @@
 #include "libavutil/avassert.h"
 #include "libavutil/mathematics.h"
 
+/*
+ * The solution for our demuxer by Vijay Bajracharya
+ * and Nick Hayes. 4/16/2020
+ */
+
 typedef struct ASIFAudioDemuxerContext {
   int sample_rate;
   int channels;
   int total_samples;
 } ASIFAudioDemuxerContext;
 
+/*
+ * This will be for accumulating the entire packet and then sending that to the decoder.
+ */
 static int asif_read_packet(AVFormatContext *s, AVPacket *pkt)
 {
   ASIFAudioDemuxerContext *s1 = s->priv_data;
   AVStream *st = s->streams[0];
   int ret;
-  int size;
-
-  av_log(NULL, AV_LOG_INFO, "Operating in Demuxer - Read Packet \n");
 
   if (st->codecpar->block_align <= 0)
     return AVERROR(EINVAL);
   
-  // Populates the packet? Empty? or Filled with our packet?
-  size = FFMAX(st->codecpar->sample_rate/25, 1);
-
-  // ret = av_get_packet(s->pb, pkt, size);
-  // av_append_packet and seek if writing 100 bytes per then seek forward samples per channel - 100.
-  
-  /* for (int i = 0; i < s1->channels; i++){ */
-  /*   ret = av_append_packet(s->pb, pkt, 100); */
-   
-  /*   if (ret < 0) { */
-  /*     av_packet_unref(pkt); */
-  /*     return ret; */
-  /*   } */
-
-  /*   avio_seek(s->pb, s1->total_samples/s1->channels - 100, SEEK_CUR); */
-  /* } */
-
+  // Get the entire packet ready
   ret = av_get_packet(s->pb, pkt, s1->total_samples);
-  
+  // Where we send the packet
   pkt->stream_index = 0;
+  // How large the packet is
   pkt->size = s1->total_samples;
 
   return ret;
 }
 
+/*
+ * Checks the first 4 letters to see if the file is an .asif file
+ */
 static int asif_probe(const AVProbeData *p)
 {
   if (p->buf[0] == 'a' && p->buf[1] == 's' && p->buf[2] == 'i' && p->buf[3] == 'f')
@@ -57,6 +50,11 @@ static int asif_probe(const AVProbeData *p)
     return 0;
 }
 
+/*
+ * Reading the first part of the file. Will also check if it is an .asif file, and then
+ * read the sample_rate, channels, and total samples per channel and set that up for our
+ * main packet function.
+ */
 static int asif_read_header(AVFormatContext *s)
 {
   AVIOContext *pb = s->pb;
@@ -65,8 +63,6 @@ static int asif_read_header(AVFormatContext *s)
   AVStream *st;
   uint32_t tag;
   uint32_t sample_rate;
-
-  av_log(NULL, AV_LOG_INFO, "Operating in Demuxer - Header \n");
   
 
   st = avformat_new_stream(s, NULL);

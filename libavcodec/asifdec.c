@@ -4,11 +4,17 @@
 #include "bytestream.h"
 #include "internal.h"
 #include "mathops.h"
+/*
+ * The solution for our decoder by Vijay Bajracharya
+ * and Nick Hayes. 4/16/2020
+ */
 
+/*
+ * Our initializer for the encoder. This will make sure that we have at least
+ * some channel(s) and then initialize the sample format.
+ */
 static av_cold int asif_decode_init(AVCodecContext *avctx)
 {
-  av_log(NULL, AV_LOG_INFO, "Operating in Decoder - Initializer \n");
-
   if (avctx->channels <= 0) {
     av_log(avctx, AV_LOG_ERROR, "ASIF channels out of bounds\n");
     return AVERROR(EINVAL);
@@ -19,6 +25,10 @@ static av_cold int asif_decode_init(AVCodecContext *avctx)
   return 0;
 }
 
+/*
+ * This is for decoding our large packet. We will run this method once by taking
+ * the large packet accumulated in the demuxer, and then send that in a frame.
+ */
 static int asif_decode_frame(AVCodecContext *avctx, void *data,
                             int *got_frame_ptr, AVPacket *avpkt)
 {
@@ -29,8 +39,6 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
     uint8_t *samples;
     uint8_t first_sample, current_sample;
     int8_t delta;
-    
-    av_log(NULL, AV_LOG_INFO, "Operating in Decoder - Frame Decoding \n");
 
     n = buf_size / avctx->channels;
 
@@ -41,7 +49,6 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
         return ret;
     
     //extended_data and loop over all channels
-
     for(int c = 0; c < avctx->channels; c++) {
       n = buf_size / avctx->channels;
       samples = frame->extended_data[c];

@@ -5,20 +5,30 @@
 #include "internal.h"
 #include "mathops.h"
 
+/*
+ * The solution for our encoder by Vijay Bajracharya
+ * and Nick Hayes. 4/16/2020
+ */
+
 typedef struct ASIFFrameData ASIFFrameData;
 
+/*
+ * The struct to hold each frame data while
+ * we accumulate all of the frames (linked list)
+ */
 struct ASIFFrameData
 {
-
   AVFrame *refFrame;
   ASIFFrameData *nextFrame;
 
 };
 
+/*
+ * The struct to hold all of our main information and the
+ * first frame information.
+ */
 typedef struct ASIFContext 
 {
-
-  int debug_frame_count;
   int packet_created;
   int total_samples;
   int received_all_frames;
@@ -26,13 +36,17 @@ typedef struct ASIFContext
 
 } ASIFContext;
 
+/*
+ * Our initializer function, setting all of our main information and getting
+ * our encoder ready for getting all of the frames.
+ */
 static av_cold int asif_encode_init(AVCodecContext *avctx)
 {
+  // Initializing our ASIFContext
   ASIFContext * c = avctx->priv_data;
   c->received_all_frames = 0;
   c->frame_data = NULL;
   c->total_samples = 0;
-  c->debug_frame_count = 0;
   c->packet_created = 0;
 
   // Initializing the context
@@ -43,7 +57,10 @@ static av_cold int asif_encode_init(AVCodecContext *avctx)
 
   return 0;
 }
-
+/* 
+ * Our main function for accumulating all of the frame data
+ * to our linked list.
+ */
 static int asif_send_frame(AVCodecContext *avctx, const AVFrame *frame)
 {
 
@@ -53,7 +70,6 @@ static int asif_send_frame(AVCodecContext *avctx, const AVFrame *frame)
 
   // If last frame 
   if (frame == NULL) {
-    av_log(NULL, AV_LOG_INFO, "Last frame received \n");
     c->received_all_frames = 1;
 
     avctx->sample_fmt = avctx->codec->sample_fmts[0];
@@ -62,7 +78,6 @@ static int asif_send_frame(AVCodecContext *avctx, const AVFrame *frame)
   }
 
   c->total_samples += frame->nb_samples * avctx->channels;
-  c->debug_frame_count++;
 
   // Make use of av_frame_ref() function or use memcpy
   // Allocate memory for arriving frames
@@ -83,7 +98,7 @@ static int asif_send_frame(AVCodecContext *avctx, const AVFrame *frame)
     while (currentFrame->nextFrame != NULL) {
       currentFrame = currentFrame->nextFrame;
     }
-    
+    // Add the frame and initialize the data
     currentFrame->nextFrame = (ASIFFrameData*)malloc(sizeof(ASIFFrameData));
 
     currentFrame = currentFrame->nextFrame;
@@ -96,9 +111,14 @@ static int asif_send_frame(AVCodecContext *avctx, const AVFrame *frame)
   
   return 0;
 }
-
+/*
+ * Our function which receives the main packet and writes to the file.
+ * Will only run if we have received all frames.
+ * This will iterate through all of the frames.
+ */
 static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
 {
+  // Initialize data variables
   ASIFContext *c = avctx->priv_data;
   int ret, n, channel, first_sample_encoded;
   unsigned char *dst;
@@ -107,10 +127,6 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
   register int32_t old_value;
   register int32_t new_value;
   register int32_t delta;
-
-  /* register int8_t catch_up = 0; */
-
-  av_log(NULL, AV_LOG_INFO, "Operating in encoder receive packet \n");
 
   // Dont start writing a packet until all frames have been recieved
   if (c->received_all_frames == 0) {
@@ -177,20 +193,20 @@ static int asif_receive_packet(AVCodecContext *avctx, AVPacket *avpkt)
 
 	old_value = new_value;
       }
-	
       first_sample_encoded = 0;
       currentFrame = currentFrame->nextFrame;
     }
   }
 
-
   avctx->sample_fmt = avctx->codec->sample_fmts[0];
-
   c->packet_created = 1;
 
   return 0;
 }
-
+/*
+ * The closing function which will delete all of our manually allocated
+ * data and return 0 saying everything went okay.
+ */
 static av_cold int asif_encode_close(AVCodecContext *avctx)
 {
   ASIFFrameData * temp;
