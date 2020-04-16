@@ -30,18 +30,21 @@ static int asif_read_packet(AVFormatContext *s, AVPacket *pkt)
   // ret = av_get_packet(s->pb, pkt, size);
   // av_append_packet and seek if writing 100 bytes per then seek forward samples per channel - 100.
   
-  for (int i = 0; i < s1->channels; i++){
-    ret = av_append_packet(s->pb, pkt, 100);
+  /* for (int i = 0; i < s1->channels; i++){ */
+  /*   ret = av_append_packet(s->pb, pkt, 100); */
    
-    if (ret < 0) {
-      av_packet_unref(pkt);
-      return ret;
-    }
+  /*   if (ret < 0) { */
+  /*     av_packet_unref(pkt); */
+  /*     return ret; */
+  /*   } */
 
-    avio_seek(s->pb, s1->total_samples/s1->channels - 100, SEEK_CUR);
-  }
+  /*   avio_seek(s->pb, s1->total_samples/s1->channels - 100, SEEK_CUR); */
+  /* } */
+
+  ret = av_get_packet(s->pb, pkt, s1->total_samples);
   
   pkt->stream_index = 0;
+  pkt->size = s1->total_samples;
 
   return ret;
 }

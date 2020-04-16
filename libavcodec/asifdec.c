@@ -25,66 +25,46 @@ static int asif_decode_frame(AVCodecContext *avctx, void *data,
     const uint8_t *src = avpkt->data;
     int buf_size       = avpkt->size;
     AVFrame *frame     = data;
-    int c, n, ret, samples_per_block;
-    volatile int sample_size;
+    int n, ret;
     uint8_t *samples;
-    int32_t *dst_int32_t;
+    uint8_t first_sample, current_sample;
     int8_t delta;
     
     av_log(NULL, AV_LOG_INFO, "Operating in Decoder - Frame Decoding \n");
 
-    sample_size = avctx->bits_per_coded_sample / 8;
-
-    samples_per_block = 1;
-
-    if (sample_size == 0) {
-        av_log(avctx, AV_LOG_ERROR, "Invalid sample_size\n");
-        return AVERROR(EINVAL);
-    }
-
-    if (avctx->channels == 0) {
-        av_log(avctx, AV_LOG_ERROR, "Invalid number of channels\n");
-        return AVERROR(EINVAL);
-    }
-
-    if (avctx->codec_id != avctx->codec->id) {
-        av_log(avctx, AV_LOG_ERROR, "codec ids mismatch\n");
-        return AVERROR(EINVAL);
-    }
-
-    n = avctx->channels * sample_size;
-
-    if (n && buf_size % n) {
-        if (buf_size < n) {
-            av_log(avctx, AV_LOG_ERROR,
-                   "Invalid ASIF packet, data has size %d but at least a size of %d was expected\n",
-                   buf_size, n);
-            return AVERROR_INVALIDDATA;
-        } else
-            buf_size -= buf_size % n;
-    }
-
-    // n = buf_size / sample_size;
-    n = 100;
+    n = buf_size / avctx->channels;
 
     /* get output buffer */
-    frame->nb_samples = n * avctx->channels;
+    frame->nb_samples = n;
+
     if ((ret = ff_get_buffer(avctx, frame, 0)) < 0) // Fills the frame
         return ret;
     
     //extended_data and loop over all channels
 
     for(int c = 0; c < avctx->channels; c++) {
+      n = buf_size / avctx->channels;
       samples = frame->extended_data[c];
 
-      for (; n > 0; n--)
-      {
-	*samples++ = *src++;
+      // Decode first sample
+      first_sample = (uint8_t) *src;
+      *samples = first_sample;
+
+      src++;
+      samples++;
+
+      current_sample = first_sample;
+
+      // Decode the rest of the samples
+      for (; n - 1 > 0; n--) {
+    	delta = (int8_t) *src;
+    	current_sample = current_sample + delta;
+        *samples = current_sample;
+    
+    	src++;
+    	samples++;
       }
     }
-    
-    // Adding data from packet (src) to frame (samples)
-    av_log(avctx, AV_LOG_INFO, "Got out of for loop\n");
 
     *got_frame_ptr = 1;
 
